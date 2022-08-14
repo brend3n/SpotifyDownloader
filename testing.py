@@ -3,13 +3,22 @@ from jmespath import search
 from pytube import YouTube
 import os
 import csv
+import enum
 
 """
 GET https://convert2mp3s.com/api/button/{FTYPE}?url={VIDEO_URL}
 Parameters
 FTYPE
 mp3, mp4, webm
-VIDEO_URL"""
+VIDEO_URL
+"""
+# Enums for CSV file
+ARTIST_NAME = 'Arist(s) Name'
+TRACK_NAME  = 'Track Name'
+ALBUM_NAME  = 'Album Name'
+LENGTH      = 'Length'
+SPOTIFY_ID  = 'SpotifyID'
+IRSC        = 'ISRC'
 
 def download(url_: str):
     if(url_ == ""):
@@ -41,10 +50,29 @@ def search_for_song(song_string: str):
     pass
 
 def read_from_csv(file_name: str):
+    list_of_strings = []
     with open(file_name, 'r') as file:
-        reader = csv.reader(file)
+        reader = csv.DictReader(file)
+        """
+        'Arist(s) Name', 'Track Name', 'Album Name', 'Length'    , 'SpotifyID'               , 'ISRC'         ]
+        example: ['Christophe '  , ' Aline '   , ' Aline '   , ' 00:02:49 ', ' 1N4ixxhbBH1ClnPdTTsRzz ', ' FR45F6500020']
+
+        # Enums for CSV file
+        ARTIST_NAME = 'Arist(s) Name'
+        TRACK_NAME  = 'Track Name'
+        ALBUM_NAME  = 'Album Name'
+        LENGTH      = 'Length'
+        SPOTIFY_ID  = 'SpotifyID'
+        IRSC        = 'ISRC'
+
+        """
         for row in reader:
-            print(row)
+            row_dict = dict(row)
+            string = f"{row_dict[ARTIST_NAME]} {row_dict[TRACK_NAME]} {row_dict[ALBUM_NAME]}"
+            # print(string)
+            list_of_strings.append(string)
+    return list_of_strings
+
 def main():
     
     choice = int(input("1. Enter URL\n2. Find single song\n3. Read from file\n"))
@@ -60,8 +88,9 @@ def main():
     elif (choice == 3):
         file_name = input("BRENDEN enter CSV instructions at some point")
         list_of_songs = read_from_csv("spotlistr-exported-playlist.csv")
-        # for song in list_of_songs:
-        #     url = search_for_song(song)
-        #     download(song)
+        print("Total songs: " + str(len(list_of_songs)))
+        for song in list_of_songs:
+            url = search_for_song(song)
+            download(song)
 if __name__ == "__main__":
     main()
