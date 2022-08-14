@@ -1,0 +1,3 @@
+[submodule "Web_Scrape_Tool"]
+	path = Web_Scrape_Tool
+	url = https://github.com/brend3n/Web_Scrape_Tool.git

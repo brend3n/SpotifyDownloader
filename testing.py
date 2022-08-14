@@ -1,9 +1,14 @@
-from turtle import down
-from jmespath import search
 from pytube import YouTube
 import os
 import csv
-import enum
+import requests
+from bs4 import BeautifulSoup
+from Web_Scrape_Tool.web_scrape_tool import get_soup_adv
+from alive_progress import alive_bar # Progress bar
+
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 
 """
 GET https://convert2mp3s.com/api/button/{FTYPE}?url={VIDEO_URL}
@@ -20,7 +25,9 @@ LENGTH      = 'Length'
 SPOTIFY_ID  = 'SpotifyID'
 IRSC        = 'ISRC'
 
+# I copied most of this code from somewhere else
 def download(url_: str):
+    print("here")
     if(url_ == ""):
         return
     # url input from user
@@ -44,32 +51,66 @@ def download(url_: str):
     # result of success
     print(yt.title + " has been successfully downloaded.")
 
+# TODO: Find the most viewed song
+def get_most_viewed_song(links):
+
+    if (len(links) > 0):
+        return links[0]
+    else:
+        return
+
 def search_for_song(song_string: str):
+    youtube_url = ""
+    youtube_links = []
+
     print(f"Searching for: {song_string}")
-    base_search_string = f"site: www.youtube.com intitle:{song_string}"
-    pass
+
+    # Creating search string
+    base_search_string = f"https://www.google.com/search?q=site: www.youtube.com intitle:{song_string}"
+
+    # Making request
+    soup = get_soup_adv(base_search_string)
+
+    # Filtering for only relevant HTML content
+    # links = soup.find_all("div", {"id": "search"})
+
+    # # Getting all youtube links
+    # for link in links:
+    #     for youtube_link in link.find_all("a"):
+    #         href = youtube_link.get('href') # get links
+    #         if "https://www.youtube.com/watch?" not in href: # Not a youtube link
+    #             continue
+    #         else:
+    #             # print(href)
+    #             youtube_links.append(href)
+
+    links = soup.find_all("a")
+
+    # Getting all youtube links
+    for youtube_link in links:
+        href = youtube_link.get('href') # get links
+        if "https://www.youtube.com/watch?" not in href: # Not a youtube link
+            continue
+        else:
+            print(href)
+            youtube_links.append(href)
+
+    # Remove duplicates
+    youtube_links = list(set(youtube_links))
+    # [print(link) for link in youtube_links]
+
+    youtube_url = get_most_viewed_song(youtube_links)
+    print(f"url: {youtube_url}")
+    return youtube_url
 
 def read_from_csv(file_name: str):
     list_of_strings = []
     with open(file_name, 'r') as file:
-        reader = csv.DictReader(file)
-        """
-        'Arist(s) Name', 'Track Name', 'Album Name', 'Length'    , 'SpotifyID'               , 'ISRC'         ]
-        example: ['Christophe '  , ' Aline '   , ' Aline '   , ' 00:02:49 ', ' 1N4ixxhbBH1ClnPdTTsRzz ', ' FR45F6500020']
-
-        # Enums for CSV file
-        ARTIST_NAME = 'Arist(s) Name'
-        TRACK_NAME  = 'Track Name'
-        ALBUM_NAME  = 'Album Name'
-        LENGTH      = 'Length'
-        SPOTIFY_ID  = 'SpotifyID'
-        IRSC        = 'ISRC'
-
-        """
+        reader = csv.DictReader(file) # allows each row to be dictionary
         for row in reader:
-            row_dict = dict(row)
-            string = f"{row_dict[ARTIST_NAME]} {row_dict[TRACK_NAME]} {row_dict[ALBUM_NAME]}"
-            # print(string)
+            row_dict = dict(row) # get dictionary of row 
+            string = f"{row_dict[ARTIST_NAME]} {row_dict[TRACK_NAME]} {row_dict[ALBUM_NAME]}" # make search string
+            # print(string) # Debugging
             list_of_strings.append(string)
     return list_of_strings
 
@@ -89,8 +130,10 @@ def main():
         file_name = input("BRENDEN enter CSV instructions at some point")
         list_of_songs = read_from_csv("spotlistr-exported-playlist.csv")
         print("Total songs: " + str(len(list_of_songs)))
-        for song in list_of_songs:
-            url = search_for_song(song)
-            download(song)
+        with alive_bar(len(list_of_songs), dual_line=True, title='Downloading') as bar:
+            for song in list_of_songs:
+                url = search_for_song(song)
+                # download(song)
+                bar()
 if __name__ == "__main__":
     main()
