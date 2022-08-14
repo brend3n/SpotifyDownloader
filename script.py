@@ -121,7 +121,7 @@ def main():
         download(song)
     elif (choice == 2):
         song = input("Enter song: ")
-        url = search_for_song(song)
+        url = retrieve_song(song)
         download(url)
     elif (choice == 3):
         file_name = input("BRENDEN enter CSV instructions at some point")
