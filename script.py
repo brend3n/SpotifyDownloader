@@ -172,4 +172,5 @@ def main():
         with alive_bar(len(list_of_songs), dual_line=True, title='Downloading') as bar:
             launch_threads(bar, num_threads, list_of_songs, file_name)
 if __name__ == "__main__":
+    # Need to figure out rate limiting
     main()
