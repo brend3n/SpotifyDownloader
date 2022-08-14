@@ -1,4 +1,3 @@
-from turtle import down
 from pytube import YouTube
 import os
 import csv
