@@ -28,7 +28,7 @@ SPOTIFY_ID  = 'SpotifyID'
 IRSC        = 'ISRC'
 
 # I copied most of this code from somewhere else
-def download(url_: str):
+def download(url_: str, file_name_: str):
     if(url_ == ""):
         return
     # url input from user
@@ -36,8 +36,8 @@ def download(url_: str):
     
     # extract only audio
     video = yt.streams.filter(only_audio=True).first()
-    
-    destination = "./DownloadedSongs/"
+
+    destination = file_name_ if file_name_ != "" else "./DownloadedSongs/"
     
     # download the file
     out_file = video.download(output_path=destination)
@@ -114,15 +114,16 @@ def read_from_csv(file_name: str):
 def main():
     
     choice = int(input("1. Enter URL\n2. Find single song\n3. Read from file\n"))
+    file_name = input("Enter folder name to store songs(mp3) or just press Enter for default folder (DownloadedSongs): ")
 
     if (choice == 1):
         # Enter filetype somewhere else, maybe use simple term
         url = input("Enter a url: ")
-        download(song)
+        download(song, file_name)
     elif (choice == 2):
         song = input("Enter song: ")
         url = retrieve_song(song)
-        download(url)
+        download(url,file_name)
     elif (choice == 3):
         file_name = input("BRENDEN enter CSV instructions at some point")
         list_of_songs = read_from_csv("spotlistr-exported-playlist.csv")
@@ -130,8 +131,8 @@ def main():
         with alive_bar(len(list_of_songs), dual_line=True, title='Downloading') as bar:
             for song in list_of_songs:
                 url = retrieve_song(song)
-                download(url)
-                sleep(1) # rate limit
+                download(url,file_name)
+                # sleep(1) # rate limit
                 bar()
 if __name__ == "__main__":
     main()
