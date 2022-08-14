@@ -5,11 +5,11 @@ import requests
 from bs4 import BeautifulSoup
 from Web_Scrape_Tool.web_scrape_tool import get_soup_adv
 from alive_progress import alive_bar # Progress bar
+import threading # Multithreading for faster scanning
 
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from time import sleep
-
 
 """
 GET https://convert2mp3s.com/api/button/{FTYPE}?url={VIDEO_URL}
@@ -61,10 +61,10 @@ def search_for_song(song_string: str):
     youtube_url = ""
     youtube_links = []
 
-    # print(f"Searching for: {song_string}")
+    print(f"Searching for: {song_string}")
 
     # Creating search string
-    base_search_string = f"https://www.google.com/search?q=site: www.youtube.com intitle:{song_string}"
+    base_search_string = f"https://www.google.com/search?q=site:youtube.com+{song_string}"
 
     # Making request
     soup = get_soup_adv(base_search_string)
@@ -92,7 +92,11 @@ def retrieve_song(song):
     res = False
 
     while(res == False):
-        url = search_for_song(song)
+        try:
+            url = search_for_song(song)
+        except Exception:
+            continue
+        
         if url is None:
             continue
         else:
@@ -105,16 +109,53 @@ def read_from_csv(file_name: str):
         reader = csv.DictReader(file) # allows each row to be dictionary
         for row in reader:
             row_dict = dict(row) # get dictionary of row 
-            string = f"{row_dict[ARTIST_NAME]} {row_dict[TRACK_NAME]} {row_dict[ALBUM_NAME]}" # make search string
+            string = f"{row_dict[ARTIST_NAME]}{row_dict[TRACK_NAME]}{row_dict[ALBUM_NAME]}" # make search string
+            string = string.replace(";", "")
+            string = string.replace(" ", "+")
             # print(string) # Debugging
             list_of_strings.append(string)
     return list_of_strings
+
+# Used for making chunks
+def chunkify(lst,n):
+    return [lst[i::n] for i in range(n)]
+
+# Use threads to speed up scanning
+def launch_threads(prog_bar_obj, num_threads, all_links, file_name):
+    
+    # Divide chunks of webpages to each thread
+    chunks = chunkify(all_links, num_threads)
+    
+    # Holds the Thread objects
+    threads = []
+    
+    # Give each thread webpages
+    for i in range(num_threads):
+        t = threading.Thread(name=f"Thread {i}", target=do_process, args=(chunks[i],file_name,prog_bar_obj,) )
+        t.setDaemon(True)
+        threads.append(t)
+    
+    # Start threads
+    print(f"Starting {num_threads} threads.")
+    for i in range(num_threads):
+        threads[i].start()
+    
+    # Join threads
+    # ! If this is excluded, it breaks code
+    for i in range(num_threads):
+        threads[i].join()
+
+def do_process(chunk_of_songs, file_name, bar):
+    for song in chunk_of_songs:
+        url = retrieve_song(song)
+        download(url,file_name)
+        sleep(5) # rate limit
+        bar()
 
 def main():
     
     choice = int(input("1. Enter URL\n2. Find single song\n3. Read from file\n"))
     file_name = input("Enter folder name to store songs(mp3) or just press Enter for default folder (DownloadedSongs): ")
-
     if (choice == 1):
         # Enter filetype somewhere else, maybe use simple term
         url = input("Enter a url: ")
@@ -124,14 +165,11 @@ def main():
         url = retrieve_song(song)
         download(url,file_name)
     elif (choice == 3):
-        file_name = input("BRENDEN enter CSV instructions at some point")
+        num_threads = int(input("Enter number of threads to use: "))
+        # file_name = input("BRENDEN enter CSV instructions at some point")
         list_of_songs = read_from_csv("spotlistr-exported-playlist.csv")
         print("Total songs: " + str(len(list_of_songs)))
         with alive_bar(len(list_of_songs), dual_line=True, title='Downloading') as bar:
-            for song in list_of_songs:
-                url = retrieve_song(song)
-                download(url,file_name)
-                # sleep(1) # rate limit
-                bar()
+            launch_threads(bar, num_threads, list_of_songs, file_name)
 if __name__ == "__main__":
     main()
