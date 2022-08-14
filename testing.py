@@ -1,3 +1,4 @@
+from turtle import down
 from pytube import YouTube
 import os
 import csv
@@ -8,6 +9,7 @@ from alive_progress import alive_bar # Progress bar
 
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from time import sleep
 
 
 """
@@ -27,7 +29,6 @@ IRSC        = 'ISRC'
 
 # I copied most of this code from somewhere else
 def download(url_: str):
-    print("here")
     if(url_ == ""):
         return
     # url input from user
@@ -36,8 +37,6 @@ def download(url_: str):
     # extract only audio
     video = yt.streams.filter(only_audio=True).first()
     
-    # check for destination to save file
-    print("Enter the destination (leave blank for current directory)")
     destination = "./DownloadedSongs/"
     
     # download the file
@@ -63,7 +62,7 @@ def search_for_song(song_string: str):
     youtube_url = ""
     youtube_links = []
 
-    print(f"Searching for: {song_string}")
+    # print(f"Searching for: {song_string}")
 
     # Creating search string
     base_search_string = f"https://www.google.com/search?q=site: www.youtube.com intitle:{song_string}"
@@ -71,38 +70,36 @@ def search_for_song(song_string: str):
     # Making request
     soup = get_soup_adv(base_search_string)
 
-    # Filtering for only relevant HTML content
-    # links = soup.find_all("div", {"id": "search"})
-
-    # # Getting all youtube links
-    # for link in links:
-    #     for youtube_link in link.find_all("a"):
-    #         href = youtube_link.get('href') # get links
-    #         if "https://www.youtube.com/watch?" not in href: # Not a youtube link
-    #             continue
-    #         else:
-    #             # print(href)
-    #             youtube_links.append(href)
-
-    links = soup.find_all("a")
+    links = soup.find_all('a', href=True)
 
     # Getting all youtube links
     for youtube_link in links:
-        href = youtube_link.get('href') # get links
+        href = youtube_link['href'] # get links
         if "https://www.youtube.com/watch?" not in href: # Not a youtube link
             continue
         else:
-            print(href)
             youtube_links.append(href)
 
     # Remove duplicates
     youtube_links = list(set(youtube_links))
-    # [print(link) for link in youtube_links]
 
     youtube_url = get_most_viewed_song(youtube_links)
-    print(f"url: {youtube_url}")
+
     return youtube_url
 
+# Gaurantees a not None URL
+def retrieve_song(song):
+    url = ""
+    res = False
+
+    while(res == False):
+        url = search_for_song(song)
+        if url is None:
+            continue
+        else:
+            res = True
+
+    return url
 def read_from_csv(file_name: str):
     list_of_strings = []
     with open(file_name, 'r') as file:
@@ -121,7 +118,7 @@ def main():
     if (choice == 1):
         # Enter filetype somewhere else, maybe use simple term
         url = input("Enter a url: ")
-        download(url)
+        download(song)
     elif (choice == 2):
         song = input("Enter song: ")
         url = search_for_song(song)
@@ -132,8 +129,9 @@ def main():
         print("Total songs: " + str(len(list_of_songs)))
         with alive_bar(len(list_of_songs), dual_line=True, title='Downloading') as bar:
             for song in list_of_songs:
-                url = search_for_song(song)
-                # download(song)
+                url = retrieve_song(song)
+                download(url)
+                sleep(1) # rate limit
                 bar()
 if __name__ == "__main__":
     main()
