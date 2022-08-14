@@ -1,2 +1,4 @@
-/DownloadedSongs 
+/DownloadedSongs/
 songs.txt
+*.mp3
+*.mp4
