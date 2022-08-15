@@ -26,6 +26,7 @@ LENGTH      = 'Length'
 SPOTIFY_ID  = 'SpotifyID'
 IRSC        = 'ISRC'
 
+RATE_LIMIT_SLEEP_TIMEOUT = 20 # 20 second delay
 # I copied most of this code from somewhere else
 def download(url_: str, file_name_: str):
     if(url_ == ""):
@@ -67,9 +68,12 @@ def search_for_song(song_string: str):
     base_search_string = f"https://www.google.com/search?q=site:youtube.com+{song_string}"
 
     # Making request
-    soup, response = get_soup_adv(base_search_string)
-    
-    if (response == 429):
+    soup = get_soup_adv(base_search_string)
+
+    # check if soup had bad response status code
+    if (soup is None):
+        # wait a bit before trying again
+        sleep(RATE_LIMIT_SLEEP_TIMEOUT)
         return None
 
     links = soup.find_all('a', href=True)
@@ -108,6 +112,7 @@ def retrieve_song(song):
             res = True
 
     return url
+
 def read_from_csv(file_name: str):
     list_of_strings = []
     with open(file_name, 'r') as file:
