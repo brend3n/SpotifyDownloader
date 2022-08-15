@@ -67,7 +67,10 @@ def search_for_song(song_string: str):
     base_search_string = f"https://www.google.com/search?q=site:youtube.com+{song_string}"
 
     # Making request
-    soup = get_soup_adv(base_search_string)
+    soup, response = get_soup_adv(base_search_string)
+    
+    if (response == 429):
+        return None
 
     links = soup.find_all('a', href=True)
 
@@ -94,6 +97,8 @@ def retrieve_song(song):
     while(res == False):
         try:
             url = search_for_song(song)
+            if (url is None):
+                raise Exception
         except Exception:
             continue
         
