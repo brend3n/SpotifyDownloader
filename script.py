@@ -39,29 +39,33 @@ IRSC        = 'ISRC'
 
 RATE_LIMIT_SLEEP_TIMEOUT = 20 # 20 second delay
 
-DEBUG = 0
-
 class DownloaderThread(threading.Thread):
     backoff_time = 0
     minimum_backoff_time = 1 #second
     MAC_BACKOFF_TIME = 60 #seconds
     
-
-    def __init__(self, chunk, file_name, bar) -> None:
+    def __init__(self, chunk, file_name, bar, name, DEBUG) -> None:
         threading.Thread.__init__(self)
         self.chunk = chunk
         self.file_name = file_name
         self.bar = bar
+        self.name
+        self.DEBUG = DEBUG
 
     def run(self) -> None:
         self.do_process()
 
     def backoff(self):
+        
         if(self.minimum_backoff_time > self.MAC_BACKOFF_TIME):
             return
+        
+        print("hererere")
         delay = self.minimum_backoff_time + random.randint(0,1000) / 1000.0
-        if (DEBUG == 1):
-            print(f"Current backoff: {delay}")
+        if (self.DEBUG == 1):
+            print(f"Thread: {self.name} backoff: {delay}")
+        else:
+            print("not true")
         sleep(delay)
         self.minimum_backoff_time *= 2
 
@@ -90,7 +94,6 @@ class DownloaderThread(threading.Thread):
 
     # TODO: Find the most viewed song
     def get_most_viewed_song(links):
-        
         if (len(links) > 0):
             return links[0]
         else:
@@ -99,9 +102,6 @@ class DownloaderThread(threading.Thread):
     def search_for_song(self, song_string: str):
         youtube_url = ""
         youtube_links = []
-
-        if (DEBUG) == 1:
-            print(f"Searching for: {song_string}")
 
         # Creating search string
         base_search_string = f"https://www.google.com/search?q=site:youtube.com+{song_string}"
@@ -112,7 +112,7 @@ class DownloaderThread(threading.Thread):
         # check if soup had bad response status code
         if (soup is None):
             # wait a bit before trying again
-            self.backoff()
+            self.backoff(self.DEBUG)
             return None
 
         links = soup.find_all('a', href=True)
@@ -133,7 +133,7 @@ class DownloaderThread(threading.Thread):
         return youtube_url
 
     # Gaurantees a not None URL
-    def retrieve_song(self, song):
+    def retrieve_song(self, song: str):
         url = ""
         res = False
 
@@ -178,7 +178,7 @@ def chunkify(lst,n):
     return [lst[i::n] for i in range(n)]
 
 # Start the threads
-def launch_threads(prog_bar_obj, num_threads, all_links, file_name):
+def launch_threads(prog_bar_obj, num_threads, all_links, file_name: str, DEBUG: int):
     
     # Divide chunks of webpages to each thread
     chunks = chunkify(all_links, num_threads)
@@ -188,7 +188,7 @@ def launch_threads(prog_bar_obj, num_threads, all_links, file_name):
     
     # Give each thread webpages
     for i in range(num_threads):
-        t = DownloaderThread(chunks[i], file_name, prog_bar_obj)
+        t = DownloaderThread(chunks[i], file_name, prog_bar_obj, str(i), DEBUG)
         t.setDaemon(True)
         threads.append(t)
     
@@ -206,7 +206,8 @@ def main():
     
     choice = int(input("1. Enter URL\n2. Find single song\n3. Read from file\n"))
     file_name = input("Enter folder name to store songs(mp3) or just press Enter for default folder (DownloadedSongs): ")
-    DEBUG_TRUE = int(input("Enter 1 for DEBUG, else no DEBUG\n"))
+    DEBUG = int(input("Enter 1 for DEBUG, else no DEBUG\n"))
+    
     if (choice == 1):
         # Enter filetype somewhere else, maybe use simple term
         url = input("Enter a url: ")
@@ -223,7 +224,7 @@ def main():
         list_of_songs = read_from_csv("spotlistr-exported-playlist.csv")
         print("Total songs: " + str(len(list_of_songs)))
         with alive_bar(len(list_of_songs), dual_line=True, title='Downloading') as bar:
-            launch_threads(bar, num_threads, list_of_songs, file_name)
+            launch_threads(bar, num_threads, list_of_songs, file_name, DEBUG)
 if __name__ == "__main__":
     # Need to figure out rate limiting
     main()
