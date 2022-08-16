@@ -92,6 +92,7 @@ def retrieve_song(song):
     res = False
 
     while(res == False):
+        sleep(5)
         try:
             url = search_for_song(song)
         except Exception:
