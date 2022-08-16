@@ -39,6 +39,8 @@ IRSC        = 'ISRC'
 
 RATE_LIMIT_SLEEP_TIMEOUT = 20 # 20 second delay
 
+DEBUG = 0
+
 class DownloaderThread(threading.Thread):
     backoff_time = 0
     minimum_backoff_time = 1 #second
@@ -58,7 +60,8 @@ class DownloaderThread(threading.Thread):
         if(self.minimum_backoff_time > self.MAC_BACKOFF_TIME):
             return
         delay = self.minimum_backoff_time + random.randint(0,1000) / 1000.0
-        print(f"Current backoff: {delay}")
+        if (DEBUG == 1):
+            print(f"Current backoff: {delay}")
         sleep(delay)
         self.minimum_backoff_time *= 2
 
@@ -97,7 +100,8 @@ class DownloaderThread(threading.Thread):
         youtube_url = ""
         youtube_links = []
 
-        print(f"Searching for: {song_string}")
+        if (DEBUG) == 1:
+            print(f"Searching for: {song_string}")
 
         # Creating search string
         base_search_string = f"https://www.google.com/search?q=site:youtube.com+{song_string}"
@@ -202,6 +206,7 @@ def main():
     
     choice = int(input("1. Enter URL\n2. Find single song\n3. Read from file\n"))
     file_name = input("Enter folder name to store songs(mp3) or just press Enter for default folder (DownloadedSongs): ")
+    DEBUG_TRUE = int(input("Enter 1 for DEBUG, else no DEBUG\n"))
     if (choice == 1):
         # Enter filetype somewhere else, maybe use simple term
         url = input("Enter a url: ")
