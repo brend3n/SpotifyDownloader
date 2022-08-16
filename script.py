@@ -42,7 +42,7 @@ RATE_LIMIT_SLEEP_TIMEOUT = 20 # 20 second delay
 class DownloaderThread(threading.Thread):
     backoff_time = 0
     minimum_backoff_time = 1 #second
-    MAC_BACKOFF_TIME = 60 #seconds
+    MAX_BACKOFF_TIME = 60 # seconds
     
     def __init__(self, chunk, file_name, bar, name, DEBUG) -> None:
         threading.Thread.__init__(self)
@@ -56,18 +56,16 @@ class DownloaderThread(threading.Thread):
         self.do_process()
 
     def backoff(self):
-        
-        if(self.minimum_backoff_time > self.MAC_BACKOFF_TIME):
+        if(self.minimum_backoff_time > self.MAX_BACKOFF_TIME):
             return
-        
-        print("hererere")
-        delay = self.minimum_backoff_time + random.randint(0,1000) / 1000.0
-        if (self.DEBUG == 1):
-            print(f"Thread: {self.name} backoff: {delay}")
         else:
-            print("not true")
-        sleep(delay)
-        self.minimum_backoff_time *= 2
+            delay = self.minimum_backoff_time + random.randint(0,1000) / 1000.0
+
+            print(f"Thread: {self.name} backoff: {delay}")
+
+            sleep(delay)
+
+            self.minimum_backoff_time *= 2
 
     # I copied most of this code from somewhere else
     def download(url_: str, file_name_: str):
@@ -112,7 +110,7 @@ class DownloaderThread(threading.Thread):
         # check if soup had bad response status code
         if (soup is None):
             # wait a bit before trying again
-            self.backoff(self.DEBUG)
+            self.backoff()
             return None
 
         links = soup.find_all('a', href=True)
