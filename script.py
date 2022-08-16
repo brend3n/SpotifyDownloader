@@ -42,7 +42,7 @@ RATE_LIMIT_SLEEP_TIMEOUT = 20 # 20 second delay
 class DownloaderThread(threading.Thread):
     backoff_time = 0
     minimum_backoff_time = 1 #second
-    MAX_BACKOFF_TIME = 60 # seconds
+    MAX_BACKOFF_TIME = (60 * 10) # 10 minutes
     
     def __init__(self, chunk, file_name, bar, name, DEBUG) -> None:
         threading.Thread.__init__(self)
@@ -224,5 +224,12 @@ def main():
         with alive_bar(len(list_of_songs), dual_line=True, title='Downloading') as bar:
             launch_threads(bar, num_threads, list_of_songs, file_name, DEBUG)
 if __name__ == "__main__":
-    # Need to figure out rate limiting
+    """
+    From Google about rate limiting,
+
+    1) 50,000 requests per project per day, which can be increased. 
+    2) 10 queries per second (QPS) per IP address. 
+    3) In the API Console, there is a similar quota referred to 
+       as Requests per 100 seconds per user.
+    """
     main()
